@@ -19,7 +19,19 @@ pipeline {
         }
         stage('Analyze') {
             steps {
-                echo 'SonarQube: se configura en el Paso 4'
+                script {
+                    def scannerHome = tool 'SonarScanner'
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                              -Dsonar.projectKey=flask-vulnerable \
+                              -Dsonar.projectName=flask-vulnerable \
+                              -Dsonar.sources=. \
+                              -Dsonar.exclusions=deps/**,**/*.html,**/*.xml,**/*.json \
+                              -Dsonar.python.version=3.11
+                        """
+                    }
+                }
             }
         }
         stage('Deploy') {
