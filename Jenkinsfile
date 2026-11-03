@@ -4,6 +4,8 @@ pipeline {
     environment {
         APP_IMAGE     = 'flask-vulnerable'
         APP_CONTAINER = 'flask-vulnerable-app'
+        ZAP_IMAGE     = 'ghcr.io/zaproxy/zaproxy:stable'
+        ZAP_TARGET    = 'http://flask-vulnerable-app:5000/hello?name=test'
     }
 
     stages {
@@ -44,6 +46,7 @@ pipeline {
         }
         stage('Security Test') {
             steps {
+                // 1) OWASP Dependency-Check: dependencias del proyecto
                 sh '''
                     rm -rf deps && mkdir deps
                     docker rm -f deps-extract || true
@@ -57,7 +60,24 @@ pipeline {
                 }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
 
-                echo 'OWASP ZAP: se agrega en el Paso 5'
+                // 2) OWASP ZAP: análisis dinámico sobre la app desplegada
+                sh '''
+                    docker rm -f zap-scan || true
+                    docker run --name zap-scan --network devsecops -v /zap/wrk $ZAP_IMAGE \
+                        zap-full-scan.py -t "$ZAP_TARGET" -r zap-report.html -m 1 -I || true
+                    docker cp zap-scan:/zap/wrk/zap-report.html ./zap-report.html
+                    docker rm -f zap-scan
+                '''
+                publishHTML(target: [
+                    reportDir: '.',
+                    reportFiles: 'zap-report.html',
+                    reportName: 'OWASP ZAP Report',
+                    keepAll: true,
+                    alwaysLinkToLastBuild: true,
+                    allowMissing: false
+                ])
+
+                archiveArtifacts artifacts: 'dependency-check-report.html, zap-report.html', allowEmptyArchive: true
             }
         }
     }
