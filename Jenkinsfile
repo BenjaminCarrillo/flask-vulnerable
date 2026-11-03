@@ -32,8 +32,10 @@ pipeline {
         }
         stage('Security Test') {
             steps {
-                dependencyCheck odcInstallation: 'DC',
-                    additionalArguments: '--scan ./ --out ./ --format HTML --format XML --enableExperimental --disableOssIndex'
+                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                    dependencyCheck odcInstallation: 'DC',
+                        additionalArguments: "--scan ./ --out ./ --format HTML --format XML --enableExperimental --disableOssIndex --nvdApiKey ${env.NVD_API_KEY}"
+                }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
 
                 echo 'OWASP ZAP: se agrega en el Paso 5'
