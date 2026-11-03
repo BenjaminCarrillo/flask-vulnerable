@@ -19,19 +19,7 @@ pipeline {
         }
         stage('Analyze') {
             steps {
-                script {
-                    def scannerHome = tool 'SonarScanner'
-                    withSonarQubeEnv('SonarQube') {
-                        sh """
-                            ${scannerHome}/bin/sonar-scanner \
-                              -Dsonar.projectKey=flask-vulnerable \
-                              -Dsonar.projectName=flask-vulnerable \
-                              -Dsonar.sources=. \
-                              -Dsonar.exclusions=**/*.html,**/*.xml,**/*.json \
-                              -Dsonar.python.version=3.11
-                        """
-                    }
-                }
+                echo 'SonarQube: se configura en el Paso 4'
             }
         }
         stage('Deploy') {
@@ -44,7 +32,14 @@ pipeline {
         }
         stage('Security Test') {
             steps {
-                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                sh '''
+                    rm -rf deps && mkdir deps
+                    docker rm -f deps-extract || true
+                    docker create --name deps-extract $APP_IMAGE:latest
+                    docker cp deps-extract:/usr/local/lib/python3.11/site-packages ./deps
+                    docker rm deps-extract
+                '''
+                withCredentials([string(credentialsId: 'nvd_api_key', variable: 'NVD_API_KEY')]) {
                     dependencyCheck odcInstallation: 'DC',
                         additionalArguments: "--scan ./ --out ./ --format HTML --format XML --enableExperimental --disableOssIndex --nvdApiKey ${env.NVD_API_KEY}"
                 }
