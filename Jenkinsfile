@@ -56,14 +56,14 @@ pipeline {
                 '''
                 withCredentials([string(credentialsId: 'nvd_api_key', variable: 'NVD_API_KEY')]) {
                     dependencyCheck odcInstallation: 'DC',
-                        additionalArguments: "--scan ./ --out ./ --format HTML --format XML --enableExperimental --disableOssIndex --nvdApiKey ${env.NVD_API_KEY}"
+                        additionalArguments: "--scan ./ --out ./ --format HTML --format XML --enableExperimental --disableOssIndex --disableAssembly --nvdApiKey ${env.NVD_API_KEY}"
                 }
                 dependencyCheckPublisher pattern: 'dependency-check-report.xml'
 
                 // 2) OWASP ZAP: análisis dinámico sobre la app desplegada
                 sh '''
                     docker rm -f zap-scan || true
-                    docker run --name zap-scan --network devsecops -v /zap/wrk $ZAP_IMAGE \
+                    docker run --name zap-scan -u root --network devsecops -v /zap/wrk $ZAP_IMAGE \
                         zap-full-scan.py -t "$ZAP_TARGET" -r zap-report.html -m 1 -I || true
                     docker cp zap-scan:/zap/wrk/zap-report.html ./zap-report.html
                     docker rm -f zap-scan
