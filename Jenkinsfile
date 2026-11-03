@@ -32,7 +32,11 @@ pipeline {
         }
         stage('Security Test') {
             steps {
-                echo 'Dependency-Check y ZAP: se configuran en los Pasos 3 y 5'
+                dependencyCheck odcInstallation: 'DC',
+                    additionalArguments: '--scan ./ --out ./ --format HTML --format XML --enableExperimental --disableOssIndex'
+                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+
+                echo 'OWASP ZAP: se agrega en el Paso 5'
             }
         }
     }
