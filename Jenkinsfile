@@ -32,7 +32,7 @@ pipeline {
         }
         stage('Security Test') {
             steps {
-                withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+                withCredentials([string(credentialsId: 'nvd_api_key', variable: 'NVD_API_KEY')]) {
                     dependencyCheck odcInstallation: 'DC',
                         additionalArguments: "--scan ./ --out ./ --format HTML --format XML --enableExperimental --disableOssIndex --nvdApiKey ${env.NVD_API_KEY}"
                 }
